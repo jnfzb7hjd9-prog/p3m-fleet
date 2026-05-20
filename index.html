@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Fleet Check</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#000;--bg2:#070707;--bg3:#0e0e0e;
+  --w:#ffffff;--w2:rgba(255,255,255,0.55);--w3:rgba(255,255,255,0.22);--w4:rgba(255,255,255,0.06);--wb:rgba(255,255,255,0.18);
+  --red:#e8002d;--red-d:rgba(232,0,45,0.08);--red-b:rgba(232,0,45,0.35);
+  --grn:rgba(0,220,90,0.8);--grn-d:rgba(0,220,90,0.07);--grn-b:rgba(0,220,90,0.25);
+  --amb:rgba(255,165,0,0.8);--amb-d:rgba(255,165,0,0.07);--amb-b:rgba(255,165,0,0.25);
+  --mono:'Share Tech Mono',monospace;--display:'Orbitron',monospace;--r:0px;
+}
+html,body{background:var(--bg);color:var(--w);font-family:var(--mono);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+#root{min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0;}
+.scanlines{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:1;}
+.app{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg2);border-bottom:1px solid var(--wb);position:sticky;top:0;z-index:100;}
+.nav::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);}
+.logo{font-family:var(--display);font-size:13px;font-weight:900;letter-spacing:0.2em;color:var(--w);cursor:pointer;user-select:none;position:relative;text-transform:uppercase;}
+.logo::after{content:'FLEET//CHECK';position:absolute;left:1px;top:0;color:var(--red);opacity:0;clip-path:polygon(0 25%,100% 25%,100% 55%,0 55%);animation:glitch 6s infinite;}
+@keyframes glitch{0%,88%,100%{opacity:0;transform:none;}89%{opacity:0.5;transform:translateX(-2px);}91%{opacity:0.5;transform:translateX(2px);}93%{opacity:0;}94%{opacity:0.4;transform:translateX(-1px);}96%{opacity:0;}}
+.nav-r{display:flex;align-items:center;gap:10px;}
+.nav-user{font-size:9px;letter-spacing:0.12em;color:var(--w3);text-transform:uppercase;}
+.chip{font-size:8px;letter-spacing:0.12em;padding:3px 8px;border:1px solid var(--wb);color:var(--w);background:var(--w4);text-transform:uppercase;}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;}
+.sidebar{width:200px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--wb);display:flex;flex-direction:column;padding:14px 0;}
+.si{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--w3);cursor:pointer;border-left:2px solid transparent;transition:all 0.15s;}
+.si:hover{color:var(--w2);background:var(--w4);}
+.si.active{color:var(--w);border-left-color:var(--w);background:var(--w4);}
+.si svg{width:13px;height:13px;flex-shrink:0;}
+.content{flex:1;padding:22px;overflow-y:auto;}
+
+/* PAGE */
+.page-t{font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:0.12em;color:var(--w);text-transform:uppercase;margin-bottom:2px;}
+.page-s{font-size:8px;letter-spacing:0.15em;color:var(--w3);text-transform:uppercase;margin-bottom:18px;}
+.sec{font-size:9px;letter-spacing:0.22em;color:var(--w);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-weight:bold;}
+.sec::before{content:'//';color:var(--w2);margin-right:2px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--wb);}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:18px;}
+.stat{background:var(--bg2);border:1px solid var(--wb);border-top:1px solid rgba(255,255,255,0.3);padding:10px 8px;}
+.stat-n{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;color:var(--w);}
+.stat-n.r{color:var(--red);text-shadow:0 0 10px rgba(232,0,45,0.35);}
+.stat-n.d{color:var(--w3);}
+.stat-l{font-size:7px;letter-spacing:0.12em;color:var(--w3);text-transform:uppercase;margin-top:3px;}
+
+/* VEHICLE GRID */
+.v-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.v-card{background:var(--bg2);border:1px solid var(--wb);padding:12px;cursor:pointer;position:relative;overflow:hidden;transition:all 0.15s;}
+.v-card:hover{border-color:var(--w);}
+.v-card.sel{border-color:var(--w);}
+.v-card.sel::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--w);}
+.v-card.inactive{opacity:0.4;}
+.v-card.workshop{border-color:rgba(255,165,0,0.3);}
+.v-card.workshop::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--amb);}
+.v-card::after{content:'';position:absolute;bottom:0;right:0;width:8px;height:8px;background:#000;clip-path:polygon(100% 0,100% 100%,0 100%);border-left:1px solid var(--wb);border-top:1px solid var(--wb);}
+.v-id{font-family:var(--display);font-size:10px;font-weight:700;color:var(--w);letter-spacing:0.06em;margin-bottom:8px;}
+.v-badges{display:flex;flex-direction:column;gap:3px;}
+
+/* BADGES */
+.badge{font-size:7px;letter-spacing:0.08em;padding:2px 5px;display:inline-block;text-transform:uppercase;border:1px solid;width:fit-content;}
+.b-clean{color:var(--grn);border-color:var(--grn-b);background:var(--grn-d);}
+.b-std{color:var(--amb);border-color:var(--amb-b);background:var(--amb-d);}
+.b-urg{color:var(--red);border-color:var(--red-b);background:var(--red-d);}
+.b-dmg{color:var(--red);border-color:var(--red-b);background:var(--red-d);}
+.b-ws{color:var(--amb);border-color:var(--amb-b);background:var(--amb-d);}
+.b-off{color:var(--w3);border-color:rgba(255,255,255,0.1);background:transparent;}
+.b-fixed{color:var(--grn);border-color:var(--grn-b);background:var(--grn-d);}
+.no-dmg{font-size:7px;letter-spacing:0.08em;color:var(--w3);text-transform:uppercase;}
+.pulse{animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--wb);position:relative;overflow:hidden;margin-bottom:10px;}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--wb);}
+.panel-title{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:0.1em;color:var(--w);text-transform:uppercase;}
+.panel-body{padding:14px 16px;}
+
+/* TABS */
+.tabs{display:flex;margin-bottom:14px;border:1px solid var(--wb);}
+.tab{flex:1;padding:9px;text-align:center;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--w3);cursor:pointer;border:none;background:none;font-family:var(--mono);border-right:1px solid var(--wb);transition:all 0.15s;}
+.tab:last-child{border-right:none;}
+.tab.active{background:var(--w4);color:var(--w);}
+
+/* DAMAGE CARD */
+.dmg-card{background:var(--bg2);border:1px solid var(--wb);border-left:2px solid var(--red);padding:14px;margin-bottom:8px;position:relative;}
+.dmg-card.fixed{border-left-color:rgba(0,220,90,0.4);opacity:0.6;}
+.dmg-card::after{content:'';position:absolute;top:0;right:0;width:8px;height:8px;background:#000;clip-path:polygon(100% 0,100% 100%,0 0);border-bottom:1px solid var(--wb);border-left:1px solid var(--wb);}
+.dmg-id{font-size:8px;letter-spacing:0.1em;color:var(--w3);margin-bottom:5px;}
+.dmg-zone{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:0.08em;color:var(--w);margin-bottom:3px;}
+.dmg-desc{font-size:12px;color:var(--w2);margin-bottom:8px;line-height:1.5;}
+.dmg-photos{display:flex;gap:6px;margin-bottom:8px;}
+.dmg-photo{width:70px;height:52px;object-fit:cover;border:1px solid var(--wb);cursor:zoom-in;}
+.dmg-ft{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.dmg-meta{font-size:8px;letter-spacing:0.06em;color:var(--w3);margin-top:4px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;}
+.btn:disabled{opacity:0.3;cursor:not-allowed;}
+.btn svg{width:12px;height:12px;flex-shrink:0;}
+.btn-w{background:var(--w4);border-color:var(--wb);color:var(--w);}
+.btn-w:hover:not(:disabled){background:var(--w3);}
+.btn-g{background:var(--grn-d);border-color:var(--grn-b);color:var(--grn);}
+.btn-g:hover:not(:disabled){background:rgba(0,220,90,0.12);}
+.btn-r{background:var(--red-d);border-color:var(--red-b);color:var(--red);}
+.btn-r:hover:not(:disabled){background:rgba(232,0,45,0.12);}
+.btn-a{background:var(--amb-d);border-color:var(--amb-b);color:var(--amb);}
+.btn-a:hover:not(:disabled){background:rgba(255,165,0,0.12);}
+.btn-sm{padding:5px 10px;font-size:8px;}
+.btn-lg{padding:12px 20px;font-size:11px;}
+.btn-full{width:100%;}
+.btn-icon{width:32px;height:32px;padding:0;}
+
+/* FORMS */
+.fg{margin-bottom:12px;}
+.fl{display:block;font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--w3);margin-bottom:5px;}
+.fc{width:100%;padding:9px 12px;background:rgba(0,0,0,0.5);border:1px solid var(--wb);font-size:13px;font-family:var(--mono);color:var(--w);transition:border-color 0.15s;appearance:none;}
+.fc:focus{outline:none;border-color:var(--w);}
+.fc::placeholder{color:var(--w3);}
+select.fc{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+textarea.fc{resize:vertical;min-height:80px;line-height:1.5;}
+
+/* PHOTO UPLOAD */
+.pup{border:1px dashed var(--wb);padding:16px;text-align:center;cursor:pointer;position:relative;background:rgba(0,0,0,0.3);transition:all 0.15s;}
+.pup:hover{border-color:var(--w);background:var(--w4);}
+.pup input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.pup-icon{font-size:18px;margin-bottom:4px;opacity:0.3;}
+.pup-txt{font-size:8px;letter-spacing:0.12em;color:var(--w3);text-transform:uppercase;}
+.pup-prev{width:100%;height:85px;object-fit:cover;margin-top:6px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+@media(min-width:640px){.overlay{align-items:center;padding:24px;}}
+.modal{background:var(--bg2);border:1px solid var(--wb);border-top:1px solid rgba(255,255,255,0.3);padding:20px 18px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:up 0.2s ease;}
+@media(min-width:640px){.modal{border-top:1px solid var(--wb);}}
+@keyframes up{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:0.12em;color:var(--w);text-transform:uppercase;}
+
+/* ALERTS */
+.alert{padding:9px 12px;font-size:9px;letter-spacing:0.08em;margin-bottom:12px;border:1px solid;}
+.alert-e{background:var(--red-d);border-color:var(--red-b);color:var(--red);}
+.alert-s{background:var(--grn-d);border-color:var(--grn-b);color:var(--grn);}
+
+/* SPINNER */
+.spin{width:14px;height:14px;border:2px solid var(--wb);border-top-color:var(--w);border-radius:50%;animation:spin 0.5s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;}
+.empty-t{font-family:var(--display);font-size:14px;letter-spacing:0.1em;color:var(--w2);text-transform:uppercase;margin-bottom:4px;}
+.empty-s{font-size:9px;letter-spacing:0.1em;color:var(--w3);text-transform:uppercase;}
+
+/* CLEANING ROW */
+.cl-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--wb);margin-bottom:6px;position:relative;}
+.cl-row.urg{border-left:2px solid var(--red);}
+.cl-row.std{border-left:2px solid var(--wb);}
+.cl-vid{font-family:var(--display);font-size:11px;min-width:58px;color:var(--w);letter-spacing:0.06em;}
+.cl-info{flex:1;}
+.cl-name{font-size:12px;color:var(--w2);}
+.cl-meta{font-size:8px;letter-spacing:0.06em;color:var(--w3);margin-top:3px;}
+.cl-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+
+/* USER ROW */
+.ur{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--wb);}
+.ur:last-child{border-bottom:none;}
+.uav{width:30px;height:30px;background:var(--w4);border:1px solid var(--wb);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:10px;color:var(--w);flex-shrink:0;}
+.ui{flex:1;}
+.un{font-size:13px;color:var(--w);}
+.us{font-size:8px;letter-spacing:0.08em;color:var(--w3);text-transform:uppercase;margin-top:1px;}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;z-index:2;}
+.login-box{background:var(--bg2);border:1px solid var(--wb);padding:32px 26px;width:100%;max-width:380px;position:relative;}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);}
+.login-logo{font-family:var(--display);font-size:22px;font-weight:900;letter-spacing:0.2em;color:var(--w);margin-bottom:3px;text-transform:uppercase;}
+.login-sub{font-size:8px;letter-spacing:0.18em;color:var(--w3);text-transform:uppercase;margin-bottom:26px;}
+.role-btn{display:block;width:100%;padding:15px 16px;background:var(--bg3);border:1px solid var(--wb);text-align:left;cursor:pointer;transition:all 0.15s;margin-bottom:8px;}
+.role-btn:hover{border-color:var(--w);background:var(--w4);}
+.role-btn-t{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:0.1em;color:var(--w);margin-bottom:2px;text-transform:uppercase;}
+.role-btn-s{font-size:8px;letter-spacing:0.1em;color:var(--w3);text-transform:uppercase;}
+.name-list{max-height:320px;overflow-y:auto;border:1px solid var(--wb);}
+.name-item{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--wb);transition:all 0.12s;font-size:13px;color:var(--w2);}
+.name-item:last-child{border-bottom:none;}
+.name-item:hover{background:var(--w4);color:var(--w);}
+
+/* STATUS BAR */
+.sbar{background:var(--bg2);border-top:1px solid var(--wb);padding:6px 20px;display:flex;align-items:center;gap:18px;font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:var(--w3);}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--red);box-shadow:0 0 8px rgba(232,0,45,0.7);animation:blink 1.4s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 8px rgba(232,0,45,0.7);}50%{opacity:0.15;box-shadow:none;}}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(7,7,7,0.98);border-top:1px solid var(--wb);display:none;z-index:90;padding-bottom:env(safe-area-inset-bottom,0);}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 0;border:none;background:none;cursor:pointer;color:var(--w3);font-family:var(--mono);font-size:7px;letter-spacing:0.1em;text-transform:uppercase;gap:4px;transition:color 0.15s;}
+.bn.active{color:var(--w);}
+.bn svg{width:16px;height:16px;}
+
+/* BACK */
+.back{display:inline-flex;align-items:center;gap:5px;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--w3);cursor:pointer;background:none;border:none;margin-bottom:16px;transition:color 0.15s;padding:0;font-family:var(--mono);}
+.back:hover{color:var(--w);}
+.back svg{width:12px;height:12px;}
+
+/* FULLSCREEN */
+.fs{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;align-items:center;justify-content:center;cursor:zoom-out;}
+.fs img{max-width:95vw;max-height:90vh;object-fit:contain;}
+
+/* CURSOR BLINK */
+.cur{display:inline-block;width:2px;height:14px;background:var(--w);animation:cur 1s step-end infinite;vertical-align:middle;margin-left:4px;opacity:0.7;}
+@keyframes cur{0%,100%{opacity:0.7}50%{opacity:0}}
+
+hr{border:none;border-top:1px solid var(--wb);margin:14px 0;}
+
+/* AVAIL TOGGLE */
+.avail-row{display:flex;gap:5px;margin-top:8px;}
+.avail-btn{flex:1;padding:6px;font-family:var(--mono);font-size:8px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;border:1px solid var(--wb);background:transparent;color:var(--w3);transition:all 0.15s;text-align:center;}
+.avail-btn.active-state{border-color:var(--w);color:var(--w);background:var(--w4);}
+.avail-btn.ws-state{border-color:var(--amb-b);color:var(--amb);background:var(--amb-d);}
+.avail-btn.off-state{border-color:rgba(255,255,255,0.1);color:var(--w3);background:transparent;}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .bnav{display:flex;}
+  .content{padding:14px 12px;padding-bottom:76px;}
+  .v-grid{grid-template-columns:repeat(3,1fr);}
+  .stats{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:480px){
+  .v-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useCallback}=React;
+
+const SB_URL='https://bqpsjxqtmliehnnhbgni.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcHNqeHF0bWxpZWhubmhiZ25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMDU3NjEsImV4cCI6MjA5NDc4MTc2MX0.WiBY79-aoypD9gPruX0s64d2RhhrxwYWqgGd4ov94WQ';
+const CMDR_EMAILS=['bruno.pavlovic@p3m.com','ervin.afgan@p3m.com'];
+const VEHICLES=['K9185','K9186','K9187','K9188','K9190','K9437','K9439','K9445','K9448','K9453'];
+const IS_CMD=window.location.pathname==='/cmd'||window.location.search==='?cmd';
+const ZONES=['Front Bumper','Rear Bumper','Hood','Trunk','Roof','Left Front Door','Left Rear Door','Right Front Door','Right Rear Door','Left Mirror','Right Mirror','Front Left Wheel','Front Right Wheel','Rear Left Wheel','Rear Right Wheel','Front Lidar','Rear Lidar','Interior','Other'];
+
+let tok=localStorage.getItem('fc_tok')||SB_KEY;
+
+const api={
+  h(x={}){return{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`,'Content-Type':'application/json',...x};},
+  async get(t,f='',s='*'){try{const r=await fetch(`${SB_URL}/rest/v1/${t}?select=${s}${f?'&'+f:''}`,{headers:this.h()});return r.ok?await r.json():[];}catch{return[];}},
+  async post(t,d){try{const r=await fetch(`${SB_URL}/rest/v1/${t}?select=*`,{method:'POST',headers:this.h({'Prefer':'return=representation'}),body:JSON.stringify(d)});const j=await r.json();return r.ok?{data:j,error:null}:{data:null,error:j};}catch(e){return{data:null,error:e};}},
+  async patch(t,f,d){try{const r=await fetch(`${SB_URL}/rest/v1/${t}?${f}`,{method:'PATCH',headers:this.h({'Prefer':'return=representation'}),body:JSON.stringify(d)});return r.ok?{error:null}:{error:await r.json()};}catch(e){return{error:e};}},
+  async login(email,pass){try{const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});const j=await r.json();if(r.ok){tok=j.access_token;localStorage.setItem('fc_tok',tok);return{data:j,error:null};}return{data:null,error:j};}catch(e){return{data:null,error:e};}},
+  async logout(){try{await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`}});}catch{}tok=SB_KEY;localStorage.removeItem('fc_tok');},
+  async upload(file,path){try{const r=await fetch(`${SB_URL}/storage/v1/object/damage-photos/${path}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`,'Content-Type':file.type},body:file});if(r.ok)return`${SB_URL}/storage/v1/object/public/damage-photos/${path}`;}catch{}return null;}
+};
+
+const fmt={
+  dt(s){if(!s)return'—';const d=new Date(s);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});},
+  ini(n){return(n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();}
+};
+
+const Ic={
+  car:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 17H3a2 2 0 01-2-2v-5l2.5-5h13l2.5 5v5a2 2 0 01-2 2h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>,
+  clean:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
+  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  out:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  plus:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  chk:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>,
+  x:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  bk:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,18 9,12 15,6"/></svg>,
+  cam:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>,
+  sh:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  tool:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>,
+};
+
+// Photo Upload
+function PhotoUp({label,onChange}){
+  const [prev,setPrev]=useState(null);
+  const handle=async(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setPrev(ev.target.result);r.readAsDataURL(f);onChange(f);};
+  return(
+    <div className="fg">
+      <label className="fl">{label}</label>
+      <div className="pup">
+        <input type="file" accept="image/*" capture="environment" onChange={handle}/>
+        {prev?<img src={prev} alt="" className="pup-prev"/>:<><div className="pup-icon">{Ic.cam}</div><div className="pup-txt">Tap to capture or upload</div></>}
+      </div>
+    </div>
+  );
+}
+
+// Damage Form
+function DmgForm({vid,agent,onClose,onDone}){
+  const [zone,setZone]=useState('');
+  const [desc,setDesc]=useState('');
+  const [cf,setCf]=useState(null);
+  const [wf,setWf]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+
+  const submit=async()=>{
+    if(!zone){setErr('Select a zone.');return;}
+    if(!desc.trim()){setErr('Add a description.');return;}
+    setSaving(true);
+    const counters=await api.get('damage_counters',`vehicle_id=eq.${vid}`);
+    const cur=counters[0]?.counter||0;
+    const next=cur+1;
+    const dmgId=`DMG-${vid}-${String(next).padStart(3,'0')}`;
+    const ts=Date.now();
+    let pc=null,pw=null;
+    if(cf)pc=await api.upload(cf,`${vid}/${dmgId}-c-${ts}`);
+    if(wf)pw=await api.upload(wf,`${vid}/${dmgId}-w-${ts}`);
+    const isSensor=zone==='Front Lidar'||zone==='Rear Lidar';
+    const {error}=await api.post('damages',{vehicle_id:vid,damage_id:dmgId,zone,description:desc.trim(),photo_closeup:pc,photo_wide:pw,reported_by:agent,status:'OPEN',is_sensor_zone:isSensor});
+    if(!error){await api.patch('damage_counters',`vehicle_id=eq.${vid}`,{counter:next});onDone();}
+    else setErr('Failed to save. Try again.');
+    setSaving(false);
+  };
+
+  return(
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="modal-hd">
+          <span className="modal-title">Report Damage — {vid}</span>
+          <button className="btn btn-w btn-icon btn-sm" onClick={onClose}>{Ic.x}</button>
+        </div>
+        {err&&<div className="alert alert-e">{err}</div>}
+        <div className="fg">
+          <label className="fl">Zone</label>
+          <select className="fc" value={zone} onChange={e=>setZone(e.target.value)}>
+            <option value="">Select zone...</option>
+            {ZONES.map(z=><option key={z}>{z}</option>)}
+          </select>
+        </div>
+        <div className="fg">
+          <label className="fl">Description</label>
+          <textarea className="fc" placeholder="Describe the damage..." value={desc} onChange={e=>setDesc(e.target.value)}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <PhotoUp label="Close-up Photo" onChange={setCf}/>
+          <PhotoUp label="Wide Photo" onChange={setWf}/>
+        </div>
+        <button className="btn btn-w btn-full btn-lg" style={{marginTop:4}} onClick={submit} disabled={saving}>
+          {saving?<div className="spin"/>:<>{Ic.plus} Submit Report</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Damage Card
+function DmgCard({d,isCmd,onFix}){
+  const [img,setImg]=useState(null);
+  const isFixed=d.status==='FIXED';
+  return(
+    <div className={`dmg-card ${isFixed?'fixed':''}`}>
+      <div className="dmg-id">{d.damage_id}{d.is_sensor_zone&&<span style={{color:'rgba(255,255,255,0.35)',marginLeft:8}}>SENSOR ZONE</span>}</div>
+      <div className="dmg-zone">{d.zone}</div>
+      <div className="dmg-desc">{d.description}</div>
+      {(d.photo_closeup||d.photo_wide)&&(
+        <div className="dmg-photos">
+          {d.photo_closeup&&<img src={d.photo_closeup} alt="close" className="dmg-photo" onClick={()=>setImg(d.photo_closeup)}/>}
+          {d.photo_wide&&<img src={d.photo_wide} alt="wide" className="dmg-photo" onClick={()=>setImg(d.photo_wide)}/>}
+        </div>
+      )}
+      <div className="dmg-ft">
+        <div>
+          <span className={`badge ${isFixed?'b-fixed':'b-dmg'}`}>{isFixed?'FIXED':'OPEN'}</span>
+          <div className="dmg-meta">By {d.reported_by} · {fmt.dt(d.reported_at)}</div>
+          {isFixed&&d.fixed_by&&<div className="dmg-meta">Fixed by {d.fixed_by}</div>}
+        </div>
+        {isCmd&&!isFixed&&<button className="btn btn-g btn-sm" onClick={()=>onFix(d.id)}>{Ic.chk} Mark Fixed</button>}
+      </div>
+      {img&&<div className="fs" onClick={()=>setImg(null)}><img src={img} alt="full"/></div>}
+    </div>
+  );
+}
+
+// Cleaning Form
+function CleanForm({vid,agent,onClose,onDone}){
+  const [type,setType]=useState('');
+  const [priority,setPriority]=useState('');
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+
+  const submit=async()=>{
+    if(!type){setErr('Select cleaning type.');return;}
+    if(!priority){setErr('Select priority.');return;}
+    setSaving(true);
+    const ex=await api.get('cleaning',`vehicle_id=eq.${vid}&status=eq.needs_cleaning`);
+    for(const e of ex)await api.patch('cleaning',`id=eq.${e.id}`,{status:'cancelled'});
+    const {error}=await api.post('cleaning',{vehicle_id:vid,cleaning_type:type,priority,marked_by:agent,status:'needs_cleaning'});
+    if(!error)onDone();
+    else setErr('Failed to save.');
+    setSaving(false);
+  };
+
+  return(
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="modal-hd">
+          <span className="modal-title">Request Cleaning — {vid}</span>
+          <button className="btn btn-w btn-icon btn-sm" onClick={onClose}>{Ic.x}</button>
+        </div>
+        {err&&<div className="alert alert-e">{err}</div>}
+        <div className="fg">
+          <label className="fl">Cleaning Type</label>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5}}>
+            {['Interior','Exterior','Both'].map(t=>(
+              <button key={t} className={`btn btn-full ${type===t?'btn-w':''}`} style={{borderColor:type===t?'var(--w)':'var(--wb)',color:type===t?'var(--w)':'var(--w3)',background:type===t?'var(--w4)':'transparent',fontSize:9}} onClick={()=>setType(t)}>{t}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fg">
+          <label className="fl">Priority</label>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+            <button className={`btn btn-full`} style={{borderColor:priority==='Standard'?'var(--w)':'var(--wb)',color:priority==='Standard'?'var(--w)':'var(--w3)',background:priority==='Standard'?'var(--w4)':'transparent',fontSize:9}} onClick={()=>setPriority('Standard')}>Standard</button>
+            <button className={`btn btn-full`} style={{borderColor:priority==='Urgent'?'var(--red-b)':'var(--wb)',color:priority==='Urgent'?'var(--red)':'var(--w3)',background:priority==='Urgent'?'var(--red-d)':'transparent',fontSize:9}} onClick={()=>setPriority('Urgent')}>Urgent</button>
+          </div>
+        </div>
+        <button className="btn btn-w btn-full btn-lg" style={{marginTop:4}} onClick={submit} disabled={saving}>
+          {saving?<div className="spin"/>:'Submit Cleaning Request'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Vehicle Page
+function VehiclePage({vid,session,onBack,onRefresh}){
+  const [tab,setTab]=useState('damage');
+  const [damages,setDamages]=useState([]);
+  const [cleaning,setCleaning]=useState([]);
+  const [vehicle,setVehicle]=useState(null);
+  const [showDmg,setShowDmg]=useState(false);
+  const [showClean,setShowClean]=useState(false);
+  const [loading,setLoading]=useState(true);
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const [d,c,v]=await Promise.all([
+      api.get('damages',`vehicle_id=eq.${vid}&order=reported_at.desc`),
+      api.get('cleaning',`vehicle_id=eq.${vid}&status=eq.needs_cleaning&limit=1`),
+      api.get('vehicles',`id=eq.${vid}`)
+    ]);
+    setDamages(d);setCleaning(c);setVehicle(v[0]);setLoading(false);
+  },[vid]);
+
+  useEffect(()=>{load();},[vid]);
+
+  const open=damages.filter(d=>d.status==='OPEN');
+  const fixed=damages.filter(d=>d.status==='FIXED');
+  const cleanRec=cleaning[0];
+  const isCmd=session.role==='commander';
+  const canReport=session.role!=='detail_crew';
+  const canClean=session.role==='av_agent'||session.role==='commander';
+
+  const fixDmg=async(id)=>{await api.patch('damages',`id=eq.${id}`,{status:'FIXED',fixed_by:session.name,fixed_at:new Date().toISOString()});load();onRefresh();};
+
+  const setAvail=async(avail)=>{
+    await api.patch('vehicles',`id=eq.${vid}`,{availability:avail,updated_at:new Date().toISOString()});
+    load();onRefresh();
+  };
+
+  return(
+    <>
+      <button className="back" onClick={onBack}>{Ic.bk} Vehicle Condition</button>
+      <div className="page-t">{vid}<span className="cur"></span></div>
+      <div className="page-s">AV UNIT · FLEET CHECK</div>
+
+      {vehicle&&isCmd&&(
+        <div style={{marginBottom:14}}>
+          <div className="fl">Vehicle Availability</div>
+          <div className="avail-row">
+            <button className={`avail-btn ${vehicle.availability==='active'?'active-state':''}`} onClick={()=>setAvail('active')}>Active</button>
+            <button className={`avail-btn ${vehicle.availability==='workshop'?'ws-state':''}`} onClick={()=>setAvail('workshop')}>Workshop</button>
+            <button className={`avail-btn ${vehicle.availability==='inactive'?'off-state':''}`} onClick={()=>setAvail('inactive')}>Inactive</button>
+          </div>
+        </div>
+      )}
+
+      <div className="tabs">
+        <button className={`tab ${tab==='damage'?'active':''}`} onClick={()=>setTab('damage')}>Damages ({open.length})</button>
+        <button className={`tab ${tab==='clean'?'active':''}`} onClick={()=>setTab('clean')}>Cleaning</button>
+      </div>
+
+      {tab==='damage'&&(
+        <>
+          {canReport&&<button className="btn btn-w btn-full" style={{marginBottom:14}} onClick={()=>setShowDmg(true)}>{Ic.plus} Report New Damage</button>}
+          {loading?<div className="loading"><div className="spin"/></div>:
+           open.length===0?<div className="empty"><div className="empty-t">No Open Damages</div><div className="empty-s">Unit is damage-free</div></div>:
+           open.map(d=><DmgCard key={d.id} d={d} isCmd={isCmd} onFix={fixDmg}/>)}
+          {fixed.length>0&&<><hr/><div className="sec">Fixed ({fixed.length})</div>{fixed.map(d=><DmgCard key={d.id} d={d} isCmd={false} onFix={null}/>)}</>}
+        </>
+      )}
+
+      {tab==='clean'&&(
+        <div className="panel">
+          <div className="panel-hd">
+            <div className="panel-title">Cleaning Status</div>
+            {cleanRec&&<span className={`badge ${cleanRec.priority==='Urgent'?'b-urg':'b-std'}`}>{cleanRec.priority}</span>}
+          </div>
+          <div className="panel-body">
+            {cleanRec?(
+              <div style={{textAlign:'center',padding:'20px 0'}}>
+                <div style={{fontFamily:'var(--display)',fontSize:14,fontWeight:700,letterSpacing:'0.1em',color:cleanRec.priority==='Urgent'?'var(--red)':'var(--amb)',marginBottom:10,textTransform:'uppercase'}}>
+                  Needs Cleaning — {cleanRec.priority}
+                </div>
+                <div style={{display:'flex',gap:5,justifyContent:'center',marginBottom:12}}>
+                  <span className="badge b-std">{cleanRec.cleaning_type}</span>
+                  <span className={`badge ${cleanRec.priority==='Urgent'?'b-urg':'b-std'}`}>{cleanRec.priority}</span>
+                </div>
+                <div style={{fontSize:8,letterSpacing:'0.1em',color:'var(--w3)',textTransform:'uppercase',lineHeight:1.8}}>
+                  Marked by {cleanRec.marked_by}<br/>{fmt.dt(cleanRec.marked_at)}
+                  {cleanRec.assigned_to&&<><br/>Assigned to {cleanRec.assigned_to}</>}
+                </div>
+              </div>
+            ):(
+              <div style={{textAlign:'center',padding:'20px 0'}}>
+                <div style={{fontFamily:'var(--display)',fontSize:14,fontWeight:700,letterSpacing:'0.1em',color:'var(--grn)',marginBottom:16,textTransform:'uppercase'}}>Unit Clean</div>
+                {canClean&&<button className="btn btn-w" onClick={()=>setShowClean(true)}>Request Cleaning</button>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showDmg&&<DmgForm vid={vid} agent={session.name} onClose={()=>setShowDmg(false)} onDone={()=>{setShowDmg(false);load();onRefresh();}}/>}
+      {showClean&&<CleanForm vid={vid} agent={session.name} onClose={()=>setShowClean(false)} onDone={()=>{setShowClean(false);load();onRefresh();}}/>}
+    </>
+  );
+}
+
+// Vehicle Condition
+function VehicleCondition({session,onSel,refreshKey}){
+  const [vdata,setVdata]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const [dmg,cln,veh]=await Promise.all([
+      api.get('damages','status=eq.OPEN'),
+      api.get('cleaning','status=eq.needs_cleaning'),
+      api.get('vehicles')
+    ]);
+    setVdata(VEHICLES.map(id=>{
+      const cl=cln.find(c=>c.vehicle_id===id);
+      const v=veh.find(v=>v.id===id)||{availability:'active'};
+      const openCount=dmg.filter(d=>d.vehicle_id===id).length;
+      return{id,openCount,cleanRec:cl,availability:v.availability};
+    }));
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{load();},[refreshKey]);
+
+  const totalOpen=vdata.reduce((s,v)=>s+v.openCount,0);
+  const needCln=vdata.filter(v=>v.cleanRec).length;
+  const inWorkshop=vdata.filter(v=>v.availability==='workshop').length;
+  const clear=vdata.filter(v=>v.openCount===0&&!v.cleanRec&&v.availability==='active').length;
+
+  const cleanLabel=(v)=>{
+    if(!v.cleanRec)return null;
+    return v.cleanRec.priority==='Urgent'?'Needs Cleaning — Urgent':'Needs Cleaning — Standard';
+  };
+
+  return(
+    <>
+      <div className="page-t">Vehicle Condition<span className="cur"></span></div>
+      <div className="page-s">AV Fleet · P3M · {VEHICLES.length} Units</div>
+
+      <div className="sec">System Status</div>
+      <div className="stats">
+        <div className="stat"><div className="stat-n">{VEHICLES.length}</div><div className="stat-l">Units</div></div>
+        <div className="stat"><div className="stat-n r">{totalOpen}</div><div className="stat-l">Damages</div></div>
+        <div className="stat"><div className="stat-n d">{needCln}</div><div className="stat-l">Cleaning</div></div>
+        <div className="stat"><div className="stat-n d">{clear}</div><div className="stat-l">Clear</div></div>
+      </div>
+
+      <div className="sec">Unit Registry</div>
+      {loading?<div className="loading"><div className="spin"/></div>:(
+        <div className="v-grid">
+          {vdata.map(v=>{
+            const isWS=v.availability==='workshop';
+            const isOff=v.availability==='inactive';
+            const cl=cleanLabel(v);
+            return(
+              <div key={v.id} className={`v-card ${isWS?'workshop':''} ${isOff?'inactive':''}`} onClick={()=>onSel(v.id)}>
+                <div className="v-id">{v.id}</div>
+                <div className="v-badges">
+                  {isWS&&<span className="badge b-ws">Workshop</span>}
+                  {isOff&&<span className="badge b-off">Inactive</span>}
+                  {cl&&<span className={`badge ${v.cleanRec?.priority==='Urgent'?'b-urg pulse':'b-std'}`}>{cl}</span>}
+                  {!isWS&&!isOff&&!cl&&<span className="badge b-clean">Clean</span>}
+                  {v.openCount>0?<span className="badge b-dmg pulse">{v.openCount} {v.openCount===1?'Damage':'Damages'}</span>:<span className="no-dmg">No Damage</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+// Fleet Care
+function FleetCare({session,refreshKey}){
+  const [items,setItems]=useState([]);
+  const [crew,setCrew]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const [c,a]=await Promise.all([
+      api.get('cleaning','status=eq.needs_cleaning&order=priority.desc,marked_at.asc'),
+      api.get('agents','role=eq.detail_crew&active=eq.true&order=name.asc')
+    ]);
+    setItems(c);setCrew(a);setLoading(false);
+  },[refreshKey]);
+
+  useEffect(()=>{load();},[refreshKey]);
+
+  const isCrew=session.role==='detail_crew';
+  const isCmd=session.role==='commander';
+  const mine=isCrew?items.filter(i=>i.assigned_to===session.name):items;
+  const getLoad=(n)=>items.filter(i=>i.assigned_to===n).length;
+
+  const assign=async(id,name)=>{await api.patch('cleaning',`id=eq.${id}`,{assigned_to:name});load();};
+  const done=async(id)=>{await api.patch('cleaning',`id=eq.${id}`,{status:'cleaned',cleaned_by:session.name,cleaned_at:new Date().toISOString()});load();};
+
+  const display=isCrew?mine:items;
+
+  return(
+    <>
+      <div className="page-t">Fleet Care<span className="cur"></span></div>
+      <div className="page-s">{isCrew?'Your Assigned Units':`${items.length} Units Queued`}</div>
+
+      {loading?<div className="loading"><div className="spin"/></div>:
+       display.length===0?(
+        <div className="empty" style={{marginTop:20}}>
+          <div className="empty-t">All Units Clean</div>
+          <div className="empty-s">{isCrew?'No units assigned to you':'No cleaning requests'}</div>
+        </div>
+       ):(
+        <>
+          <div className="sec">Queued ({display.length})</div>
+          {display.map(item=>(
+            <div key={item.id} className={`cl-row ${item.priority==='Urgent'?'urg':'std'}`}>
+              <div className="cl-vid">{item.vehicle_id}</div>
+              <div className="cl-info">
+                <div className="cl-name">{item.assigned_to||<span style={{color:'var(--w3)'}}>Unassigned</span>}</div>
+                <div className="cl-badges">
+                  <span className="badge b-std">{item.cleaning_type}</span>
+                  <span className={`badge ${item.priority==='Urgent'?'b-urg':'b-off'}`}>{item.priority}</span>
+                </div>
+                <div className="cl-meta">By {item.marked_by} · {fmt.dt(item.marked_at)}</div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:5,alignItems:'flex-end'}}>
+                {isCmd&&(
+                  <select className="fc" style={{width:'auto',fontSize:9,padding:'4px 24px 4px 8px'}} value={item.assigned_to||''} onChange={e=>assign(item.id,e.target.value)}>
+                    <option value="">Assign...</option>
+                    {crew.map(c=><option key={c.id} value={c.name} disabled={getLoad(c.name)>=2&&item.assigned_to!==c.name}>{c.name} ({getLoad(c.name)}/2)</option>)}
+                  </select>
+                )}
+                <button className="btn btn-g btn-sm" onClick={()=>done(item.id)}>{Ic.chk} Done</button>
+              </div>
+            </div>
+          ))}
+        </>
+       )}
+
+      {isCmd&&crew.length>0&&(
+        <>
+          <div className="sec" style={{marginTop:20}}>Crew Status</div>
+          <div className="panel">
+            <div className="panel-body">
+              {crew.map(c=>{
+                const l=getLoad(c.name);
+                return(
+                  <div key={c.id} style={{display:'flex',alignItems:'center',gap:12,paddingBottom:10,marginBottom:10,borderBottom:'1px solid var(--wb)'}}>
+                    <div className="uav">{fmt.ini(c.name)}</div>
+                    <div style={{flex:1}}><div className="un">{c.name}</div><div className="us">{l}/2 Assigned</div></div>
+                    <div style={{display:'flex',gap:3}}>{[0,1].map(i=><div key={i} style={{width:8,height:8,background:i<l?'var(--amb)':'var(--wb)'}}/>)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {isCmd&&crew.length===0&&(
+        <div style={{marginTop:20,padding:'14px',border:'1px solid var(--wb)',background:'var(--bg2)'}}>
+          <div style={{fontSize:9,letterSpacing:'0.12em',color:'var(--w3)',textTransform:'uppercase'}}>No Detail Crew added yet — go to Personnel to add crew members.</div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Personnel
+function Personnel(){
+  const [agents,setAgents]=useState([]);
+  const [showAdd,setShowAdd]=useState(false);
+  const [name,setName]=useState('');
+  const [role,setRole]=useState('av_agent');
+  const [saving,setSaving]=useState(false);
+  const [search,setSearch]=useState('');
+
+  const load=useCallback(async()=>{const a=await api.get('agents','order=name.asc');setAgents(a);},[]);
+  useEffect(()=>{load();},[]);
+
+  const add=async()=>{if(!name.trim())return;setSaving(true);await api.post('agents',{name:name.trim(),role,active:true});setName('');setSaving(false);setShowAdd(false);load();};
+  const toggle=async(id,active)=>{await api.patch('agents',`id=eq.${id}`,{active:!active});load();};
+
+  const filtered=agents.filter(a=>a.name.toLowerCase().includes(search.toLowerCase()));
+  const avA=filtered.filter(a=>a.role==='av_agent');
+  const crw=filtered.filter(a=>a.role==='detail_crew');
+
+  return(
+    <>
+      <div className="page-t">Personnel<span className="cur"></span></div>
+      <div className="page-s">{agents.length} Crew Members Registered</div>
+      <div style={{display:'flex',gap:8,margin:'16px 0'}}>
+        <input className="fc" placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        <button className="btn btn-w" onClick={()=>setShowAdd(true)}>{Ic.plus} Add</button>
+      </div>
+      {[{label:'AV Agents',items:avA},{label:'Detail Crew',items:crw}].map(g=>(
+        <div key={g.label}>
+          <div className="sec">{g.label} ({g.items.length})</div>
+          <div className="panel" style={{marginBottom:14}}>
+            <div className="panel-body" style={{padding:'6px 14px'}}>
+              {g.items.length===0?
+                <div style={{fontSize:8,letterSpacing:'0.14em',color:'var(--w3)',textAlign:'center',padding:'14px 0',textTransform:'uppercase'}}>None Added Yet</div>:
+                g.items.map(a=>(
+                  <div key={a.id} className="ur">
+                    <div className="uav" style={{opacity:a.active?1:0.3}}>{fmt.ini(a.name)}</div>
+                    <div className="ui"><div className="un" style={{color:a.active?'var(--w)':'var(--w3)'}}>{a.name}</div><div className="us">{a.active?'Active':'Inactive'}</div></div>
+                    <button className={`btn btn-sm ${a.active?'btn-w':''}`} style={{color:a.active?'var(--w3)':'var(--grn)',borderColor:a.active?'var(--wb)':'var(--grn-b)',background:'transparent'}} onClick={()=>toggle(a.id,a.active)}>{a.active?'Deactivate':'Activate'}</button>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      ))}
+      {showAdd&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
+          <div className="modal">
+            <div className="modal-hd">
+              <span className="modal-title">Add Personnel</span>
+              <button className="btn btn-w btn-icon btn-sm" onClick={()=>setShowAdd(false)}>{Ic.x}</button>
+            </div>
+            <div className="fg"><label className="fl">Full Name</label><input className="fc" placeholder="First Last" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()}/></div>
+            <div className="fg"><label className="fl">Role</label><select className="fc" value={role} onChange={e=>setRole(e.target.value)}><option value="av_agent">AV Agent</option><option value="detail_crew">Detail Crew</option></select></div>
+            <button className="btn btn-w btn-full" onClick={add} disabled={saving}>{saving?<div className="spin"/>:'Add Member'}</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Login
+function Login({onLogin}){
+  const [step,setStep]=useState(IS_CMD?'cmd':'roles');
+  const [role,setRole]=useState('');
+  const [agents,setAgents]=useState([]);
+  const [search,setSearch]=useState('');
+  const [email,setEmail]=useState('');
+  const [pass,setPass]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [err,setErr]=useState('');
+
+  const pickRole=async(r)=>{
+    setRole(r);
+    const a=await api.get('agents',`role=eq.${r}&active=eq.true&order=name.asc`);
+    setAgents(a);setStep('name');setSearch('');
+  };
+  const pickName=(n)=>onLogin({name:n,role,isCommander:false});
+
+  const cmdLogin=async()=>{
+    if(!email||!pass){setErr('Enter email and password.');return;}
+    if(!CMDR_EMAILS.includes(email.toLowerCase())){setErr('Access denied.');return;}
+    setLoading(true);
+    const {error}=await api.login(email,pass);
+    setLoading(false);
+    if(error){setErr('Invalid credentials.');return;}
+    onLogin({name:email.split('@')[0],email,role:'commander',isCommander:true});
+  };
+
+  const filtered=agents.filter(a=>a.name.toLowerCase().includes(search.toLowerCase()));
+
+  return(
+    <div className="login-wrap">
+      <div class="scanlines"></div>
+      <div className="login-box">
+        <div className="login-logo">Fleet//Check</div>
+        <div className="login-sub">AV Fleet Operations · P3M</div>
+        {err&&<div className="alert alert-e">{err}</div>}
+
+        {step==='roles'&&(
+          <>
+            <button className="role-btn" onClick={()=>pickRole('av_agent')}>
+              <div className="role-btn-t">AV Agent</div>
+              <div className="role-btn-s">Field operations · damage reporting</div>
+            </button>
+            <button className="role-btn" onClick={()=>pickRole('detail_crew')}>
+              <div className="role-btn-t">Detail Crew</div>
+              <div className="role-btn-s">Interior & exterior vehicle cleaning</div>
+            </button>
+            <div style={{textAlign:'center',marginTop:18}}>
+              <button style={{background:'none',border:'none',fontFamily:'var(--mono)',fontSize:8,color:'var(--w3)',letterSpacing:'0.14em',cursor:'pointer',textTransform:'uppercase',padding:'4px 8px'}} onClick={()=>setStep('cmd')}>
+                Commander Access
+              </button>
+            </div>
+          </>
+        )}
+
+        {step==='name'&&(
+          <>
+            <button className="back" onClick={()=>setStep('roles')} style={{marginBottom:12}}>{Ic.bk} Back</button>
+            <div className="fl" style={{marginBottom:6}}>Select your name</div>
+            <input className="fc" style={{marginBottom:8}} placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
+            <div className="name-list">
+              {filtered.length===0?
+                <div style={{padding:'14px',textAlign:'center',fontSize:9,letterSpacing:'0.12em',color:'var(--w3)',textTransform:'uppercase'}}>No Results</div>:
+                filtered.map(a=><div key={a.id} className="name-item" onClick={()=>pickName(a.name)}>{a.name}</div>)
+              }
+            </div>
+          </>
+        )}
+
+        {step==='cmd'&&(
+          <>
+            {!IS_CMD&&<button className="back" onClick={()=>setStep('roles')} style={{marginBottom:12}}>{Ic.bk} Back</button>}
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18,padding:'11px 12px',background:'var(--w4)',border:'1px solid var(--wb)'}}>
+              <span style={{color:'var(--w)',width:16,height:16,flexShrink:0}}>{Ic.sh}</span>
+              <div>
+                <div style={{fontFamily:'var(--display)',fontSize:11,fontWeight:700,letterSpacing:'0.12em',color:'var(--w)',textTransform:'uppercase'}}>Commander Access</div>
+                <div style={{fontSize:8,color:'var(--w3)',letterSpacing:'0.1em',marginTop:2,textTransform:'uppercase'}}>Restricted · Authorised personnel only</div>
+              </div>
+            </div>
+            <div className="fg"><label className="fl">Email</label><input className="fc" type="email" placeholder="commander@p3m.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&cmdLogin()}/></div>
+            <div className="fg"><label className="fl">Password</label><input className="fc" type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&cmdLogin()}/></div>
+            <button className="btn btn-w btn-full btn-lg" onClick={cmdLogin} disabled={loading}>{loading?<div className="spin"/>:<>{Ic.sh} Access System</>}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// App
+function App(){
+  const [session,setSession]=useState(()=>{const s=localStorage.getItem('fc_sess');return s?JSON.parse(s):null;});
+  const [view,setView]=useState('vehicles');
+  const [selVid,setSelVid]=useState(null);
+  const [rk,setRk]=useState(0);
+  const [clock,setClock]=useState('');
+
+  useEffect(()=>{
+    const t=setInterval(()=>setClock(new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' UTC'),1000);
+    return()=>clearInterval(t);
+  },[]);
+
+  useEffect(()=>{
+    const m=window.location.pathname.match(/\/vehicle\/(\w+)/);
+    if(m&&VEHICLES.includes(m[1])){setSelVid(m[1]);setView('vehicle');}
+  },[]);
+
+  const login=(s)=>{localStorage.setItem('fc_sess',JSON.stringify(s));setSession(s);};
+  const logout=async()=>{if(session?.isCommander)await api.logout();localStorage.removeItem('fc_sess');setSession(null);setView('vehicles');};
+  const navTo=(v)=>{setView(v);setSelVid(null);window.history.pushState({},'','/');};
+  const openVid=(id)=>{setSelVid(id);setView('vehicle');window.history.pushState({},'',`/vehicle/${id}`);};
+
+  if(!session)return<Login onLogin={login}/>;
+
+  const isCmd=session.role==='commander';
+  const isCrew=session.role==='detail_crew';
+  const rl={commander:'Commander',av_agent:'AV Agent',detail_crew:'Detail Crew'}[session.role];
+
+  const navItems=[
+    !isCrew&&{id:'vehicles',icon:Ic.car,label:'Vehicle Condition'},
+    {id:'fleetcare',icon:Ic.clean,label:'Fleet Care'},
+    isCmd&&{id:'personnel',icon:Ic.users,label:'Personnel'},
+  ].filter(Boolean);
+
+  return(
+    <div className="app">
+      <nav className="nav">
+        <div className="logo" onClick={()=>navTo(isCrew?'fleetcare':'vehicles')}>Fleet//Check</div>
+        <div className="nav-r">
+          <span className="nav-user">{session.name.split(' ')[0].toUpperCase()}</span>
+          <span className="chip">{rl}</span>
+          <button className="btn btn-w btn-icon btn-sm" onClick={logout}>{Ic.out}</button>
+        </div>
+      </nav>
+
+      <div className="layout">
+        <aside className="sidebar">
+          {navItems.map(item=>(
+            <div key={item.id} className={`si ${view===item.id||(view==='vehicle'&&item.id==='vehicles')?'active':''}`} onClick={()=>navTo(item.id)}>
+              <span style={{width:13,height:13,flexShrink:0}}>{item.icon}</span>{item.label}
+            </div>
+          ))}
+          <div style={{marginTop:'auto',padding:'14px 18px'}}>
+            <button className="btn btn-w btn-sm btn-full" onClick={logout} style={{justifyContent:'flex-start',gap:8}}>{Ic.out} Sign Out</button>
+          </div>
+        </aside>
+
+        <main className="content">
+          {view==='vehicles'&&!isCrew&&<VehicleCondition session={session} onSel={openVid} refreshKey={rk}/>}
+          {view==='vehicle'&&selVid&&<VehiclePage vid={selVid} session={session} onBack={()=>navTo('vehicles')} onRefresh={()=>setRk(k=>k+1)}/>}
+          {view==='fleetcare'&&<FleetCare session={session} refreshKey={rk}/>}
+          {view==='personnel'&&isCmd&&<Personnel/>}
+        </main>
+      </div>
+
+      <nav className="bnav">
+        {navItems.map(item=>(
+          <button key={item.id} className={`bn ${view===item.id||(view==='vehicle'&&item.id==='vehicles')?'active':''}`} onClick={()=>navTo(item.id)}>
+            {item.icon}{item.label.split(' ')[0]}
+          </button>
+        ))}
+      </nav>
+
+      <div className="sbar">
+        <div className="sb-dot"/>
+        <span>Systems Active</span>
+        <span>{VEHICLES.length} Units Tracked</span>
+        <span style={{marginLeft:'auto'}}>{clock}</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById('root'));
+</script>
+</body>
+</html>
